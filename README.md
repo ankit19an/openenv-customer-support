@@ -1,3 +1,13 @@
+---
+title: OpenEnv Customer Support
+emoji: "🚀"
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # OpenEnv Customer Support
 
 A lightweight reinforcement-learning style environment for customer-support response training.
