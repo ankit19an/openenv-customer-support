@@ -650,7 +650,11 @@ def main() -> None:
     import uvicorn
 
     uvicorn.run(
-        "server:app",
+        "server.app:app",
         host=os.getenv("HOST", "0.0.0.0"),
         port=int(os.getenv("PORT", "7860")),
     )
+
+
+if __name__ == "__main__":
+    main()

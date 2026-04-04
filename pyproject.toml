@@ -17,12 +17,12 @@ dependencies = [
 ]
 
 [project.scripts]
-server = "server:main"
+server = "server.app:main"
 
 [project.urls]
 Homepage = "https://huggingface.co/spaces/ankit19an/openenv-customer-support"
 Repository = "https://github.com/ankit19an/openenv-customer-support"
 
 [tool.setuptools]
-py-modules = ["server", "env", "graders", "models", "tasks", "inference"]
-packages = ["my_env"]
+py-modules = ["env", "graders", "models", "tasks", "inference"]
+packages = ["my_env", "server"]
