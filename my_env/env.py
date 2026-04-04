@@ -1,19 +1,32 @@
 import random
-from my_env.models import Observation, Action
-from my_env.tasks import TASKS
+
 from my_env.graders import calculate_reward
+from my_env.models import Action, Observation
+from my_env.tasks import TASKS
+
 
 class CustomerSupportEnv:
+    def __init__(self, task_name: str = "easy"):
+        self.max_turns = 5
+        self.task_name = ""
+        self.task = {}
+        self.history: list[str] = []
+        self.turn = 0
+        self.done = False
+        self.set_task(task_name)
 
-    def __init__(self, task_name="easy"):
+    def set_task(self, task_name: str) -> None:
+        if task_name not in TASKS:
+            supported = ", ".join(sorted(TASKS))
+            raise ValueError(f"Unknown task '{task_name}'. Supported tasks: {supported}")
+
         self.task_name = task_name
         self.task = TASKS[task_name]
-        self.history = []
-        self.turn = 0
-        self.max_turns = 5
-        self.done = False
 
-    async def reset(self):
+    async def reset(self, task_name: str | None = None):
+        if task_name:
+            self.set_task(task_name)
+
         self.history = []
         self.turn = 0
         self.done = False
@@ -25,10 +38,15 @@ class CustomerSupportEnv:
                 ticket_id=self.task["ticket_id"],
                 customer_message=self._customer_response(),
                 status="open",
-                history=self.history
+                history=list(self.history),
             ),
             "reward": 0.0,
-            "done": self.done
+            "done": self.done,
+            "info": {
+                "task_name": self.task_name,
+                "turn": self.turn,
+                "max_turns": self.max_turns,
+            },
         }
 
     def _customer_response(self):
@@ -39,7 +57,7 @@ class CustomerSupportEnv:
             "Can you explain more?",
             "This is frustrating!",
             "Please resolve this quickly.",
-            "What are you doing about it?"
+            "What are you doing about it?",
         ]
         return random.choice(responses)
 
@@ -60,11 +78,15 @@ class CustomerSupportEnv:
                 ticket_id=self.task["ticket_id"],
                 customer_message=self._customer_response(),
                 status="resolved" if self.done else "open",
-                history=self.history
+                history=list(self.history),
             ),
             "reward": reward,
             "done": self.done,
-            "info": {}
+            "info": {
+                "task_name": self.task_name,
+                "turn": self.turn,
+                "max_turns": self.max_turns,
+            },
         }
 
     async def state(self):

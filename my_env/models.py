@@ -1,12 +1,15 @@
-from pydantic import BaseModel
-from typing import List
+from dataclasses import dataclass, field
 
-class Observation(BaseModel):
+
+@dataclass
+class Observation:
     ticket_id: str
     customer_message: str
     status: str
-    history: List[str]
+    history: list[str] = field(default_factory=list)
 
-class Action(BaseModel):
+
+@dataclass
+class Action:
     reply: str
     mark_resolved: bool
