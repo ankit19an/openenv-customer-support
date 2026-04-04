@@ -1,0 +1,31 @@
+name: customer-support-rl-env
+version: "0.1.0"
+description: >
+  A lightweight customer-support training environment with escalating ticket
+  scenarios for RL and agent evaluation workflows.
+author: ankit19an
+tags:
+  - customer-support
+  - reinforcement-learning
+  - openenv
+  - fastapi
+tasks:
+  - id: easy
+    name: Delayed Order
+    difficulty: easy
+    domain: customer_support
+  - id: medium
+    name: Wrong Item And Delay
+    difficulty: medium
+    domain: customer_support
+  - id: hard
+    name: Refund And Escalation
+    difficulty: hard
+    domain: customer_support
+endpoints:
+  reset: POST /reset
+  step: POST /step
+  state: GET /state
+  tasks: GET /tasks
+observation_schema: my_env.models.Observation
+action_schema: my_env.models.Action

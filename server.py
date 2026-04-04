@@ -1,4 +1,5 @@
 import json
+import os
 from html import escape
 
 from fastapi import FastAPI, HTTPException
@@ -643,3 +644,13 @@ async def state():
 @app.get("/tasks")
 async def tasks():
     return {"tasks": sorted(TASKS)}
+
+
+def main() -> None:
+    import uvicorn
+
+    uvicorn.run(
+        "server:app",
+        host=os.getenv("HOST", "0.0.0.0"),
+        port=int(os.getenv("PORT", "7860")),
+    )
