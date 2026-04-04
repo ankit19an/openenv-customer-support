@@ -1,6 +1,4 @@
-<<<<<<< HEAD
 from fastapi import FastAPI, HTTPException
-
 from my_env.env import CustomerSupportEnv
 from my_env.models import Action
 from my_env.tasks import TASKS
@@ -30,20 +28,12 @@ async def reset(task_name: str | None = None):
     try:
         return await env.reset(task_name=task_name)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @app.post("/step")
-async def step(action: dict):
-    try:
-        parsed_action = Action(**action)
-    except TypeError as exc:
-        raise HTTPException(
-            status_code=422,
-            detail="Invalid action payload. Expected fields: reply (str), mark_resolved (bool).",
-        ) from exc
-
-    return await env.step(parsed_action)
+async def step(action: Action):
+    return await env.step(action)
 
 
 @app.get("/state")
@@ -54,24 +44,3 @@ async def state():
 @app.get("/tasks")
 async def tasks():
     return {"tasks": sorted(TASKS)}
-=======
-from fastapi import FastAPI
-from my_env.env import CustomerSupportEnv
-from my_env.models import Action
-
-app = FastAPI()
-
-env = CustomerSupportEnv("easy")
-
-@app.post("/reset")
-async def reset():
-    return await env.reset()
-
-@app.post("/step")
-async def step(action: Action):
-    return await env.step(action)
-
-@app.get("/state")
-async def state():
-    return await env.state()
->>>>>>> f820171d173896bad9057737a05cce759b31d2ff
