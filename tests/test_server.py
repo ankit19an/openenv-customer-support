@@ -8,9 +8,11 @@ class TestServerHomepage(unittest.TestCase):
         page = render_homepage()
 
         self.assertIn("Customer Support RL Env", page)
+        self.assertIn("Live Agent Arena", page)
         self.assertIn("Scenario Deck", page)
         self.assertIn("/docs", page)
-        self.assertIn("/reset?task_name=easy", page)
+        self.assertIn("Try Easy Scenario", page)
+        self.assertIn("Send Reply", page)
         self.assertIn("API Surface", page)
 
 

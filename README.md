@@ -10,19 +10,21 @@ pinned: false
 
 # OpenEnv Customer Support
 
-A lightweight reinforcement-learning style environment for customer-support response training.
+A customer-support simulation environment for training and evaluating agent behavior under escalating ticket pressure.
 
 ## Features
 
-- FastAPI server with `/reset`, `/step`, `/state`, `/tasks`, and `/health` endpoints.
-- Three built-in task difficulties: `easy`, `medium`, `hard`.
-- Reward function that scores empathy + intent handling + resolution quality.
+- FastAPI environment API with `/reset`, `/step`, `/state`, `/tasks`, and `/health` endpoints.
+- Live in-browser playground on the homepage so reviewers can test scenarios without touching curl.
+- Three escalating ticket difficulties: `easy`, `medium`, `hard`.
+- Reward function that scores empathy, intent coverage, and resolution quality.
+- OpenEnv-compatible repo layout with `uv.lock`, `pyproject.toml`, and `openenv.yaml`.
 
 ## Run locally
 
 ```bash
 pip install -r requirements.txt
-uvicorn server:app --reload
+uvicorn server.app:app --reload
 ```
 
 ## API quickstart
@@ -47,6 +49,13 @@ List available tasks:
 curl 'http://127.0.0.1:8000/tasks'
 ```
 
+## Demo flow
+
+1. Open the Space root page.
+2. Launch a scenario from the **Live Agent Arena**.
+3. Respond as the support agent and watch reward + turn state update in real time.
+4. Use `/docs` if you want direct API inspection afterward.
+
 ## Deploy on Hugging Face Spaces
 
 Use a **Docker Space** for this repository.
@@ -56,16 +65,20 @@ Use a **Docker Space** for this repository.
 3. Ensure these files are present and non-empty:
    - `Dockerfile`
    - `requirements.txt`
-   - `server.py`
+   - `server/app.py`
+   - `pyproject.toml`
+   - `uv.lock`
 4. After build completes, open:
+   - `https://<your-space>.hf.space/` for the interactive homepage
    - `https://<your-space>.hf.space/health` for health check
-   - `https://<your-space>.hf.space/docs` for interactive Swagger UI
+   - `https://<your-space>.hf.space/docs` for Swagger UI
 
 If build fails, check the Space build logs first; dependency issues are usually caused by missing or empty `requirements.txt`.
 
 ## Run checks
 
 ```bash
-python -m py_compile server.py my_env/*.py tests/test_env.py
+python -m py_compile server/app.py my_env/*.py tests/test_env.py tests/test_server.py
 python -m unittest discover -s tests
+uv run openenv validate
 ```

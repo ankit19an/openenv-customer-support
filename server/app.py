@@ -39,6 +39,7 @@ def render_homepage() -> str:
     }
 
     task_cards = []
+    scenario_options = []
     for task_name, task in TASKS.items():
         intents = task["ground_truth"]["intent"]
         if isinstance(intents, str):
@@ -62,8 +63,12 @@ def render_homepage() -> str:
                 <span>Resolution: {escape(task["ground_truth"]["resolution"].replace("_", " "))}</span>
               </div>
               <code class="task-action">POST /reset?task_name={escape(task_name)}</code>
+              <button class="launch-button" data-task="{escape(task_name)}">Try {escape(task_name.title())} Scenario</button>
             </article>
             """
+        )
+        scenario_options.append(
+            f'<option value="{escape(task_name)}">{escape(task_name.title())} · {escape(label)}</option>'
         )
 
     endpoint_cards = []
@@ -439,6 +444,233 @@ def render_homepage() -> str:
         font-family: "IBM Plex Mono", monospace;
       }}
 
+      .launch-button {{
+        margin-top: 12px;
+        border: 0;
+        border-radius: 14px;
+        padding: 12px 14px;
+        background: linear-gradient(135deg, #f97316, #ea580c);
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 12px 24px rgba(249, 115, 22, 0.22);
+      }}
+
+      .playground {{
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+        gap: 18px;
+        align-items: stretch;
+      }}
+
+      .playground-panel,
+      .score-panel {{
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.82);
+        box-shadow: var(--shadow);
+      }}
+
+      .playground-panel {{
+        overflow: hidden;
+      }}
+
+      .console-top {{
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: start;
+        padding: 20px 20px 0;
+      }}
+
+      .console-top h3,
+      .score-panel h3 {{
+        margin: 0 0 6px;
+        font-size: 1.35rem;
+      }}
+
+      .console-top p,
+      .score-panel p {{
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.65;
+      }}
+
+      .status-pill {{
+        padding: 10px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(37, 99, 235, 0.08);
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.78rem;
+        white-space: nowrap;
+      }}
+
+      .console-stats {{
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        padding: 18px 20px;
+      }}
+
+      .console-stat {{
+        padding: 14px;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: rgba(31, 36, 48, 0.04);
+      }}
+
+      .console-stat span {{
+        display: block;
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 8px;
+      }}
+
+      .console-stat strong {{
+        font-size: 1.15rem;
+      }}
+
+      .console-controls {{
+        display: flex;
+        gap: 12px;
+        padding: 0 20px 18px;
+      }}
+
+      .scenario-select {{
+        flex: 1;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink);
+        padding: 12px 14px;
+        font: inherit;
+      }}
+
+      .transcript {{
+        min-height: 320px;
+        max-height: 420px;
+        overflow: auto;
+        padding: 0 20px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }}
+
+      .bubble {{
+        max-width: 88%;
+        border-radius: 18px;
+        padding: 14px 16px;
+        line-height: 1.65;
+        border: 1px solid var(--line);
+      }}
+
+      .bubble small {{
+        display: block;
+        margin-bottom: 8px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.72rem;
+      }}
+
+      .bubble.customer {{
+        align-self: flex-start;
+        background: rgba(249, 115, 22, 0.08);
+      }}
+
+      .bubble.agent {{
+        align-self: flex-end;
+        background: rgba(37, 99, 235, 0.08);
+      }}
+
+      .composer {{
+        border-top: 1px solid var(--line);
+        padding: 18px 20px 20px;
+        display: grid;
+        gap: 12px;
+      }}
+
+      .composer textarea {{
+        min-height: 120px;
+        resize: vertical;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        padding: 14px 16px;
+        font: inherit;
+      }}
+
+      .composer-row {{
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+      }}
+
+      .composer-actions {{
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }}
+
+      .console-button {{
+        border: 0;
+        border-radius: 14px;
+        padding: 12px 16px;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }}
+
+      .console-button.primary {{
+        background: linear-gradient(135deg, #2563eb, #0f766e);
+        color: #fff;
+      }}
+
+      .console-button.secondary {{
+        border: 1px solid var(--line);
+        background: rgba(31, 36, 48, 0.04);
+        color: var(--ink);
+      }}
+
+      .toggle {{
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--muted);
+      }}
+
+      .helper-line {{
+        color: var(--muted);
+        font-size: 0.92rem;
+      }}
+
+      .score-panel {{
+        padding: 20px;
+      }}
+
+      .rubric-list {{
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }}
+
+      .rubric-item {{
+        padding: 14px 16px;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(31, 36, 48, 0.04);
+      }}
+
+      .rubric-item strong {{
+        display: block;
+        margin-bottom: 6px;
+      }}
+
       .endpoint-grid {{
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -491,6 +723,7 @@ def render_homepage() -> str:
       @media (max-width: 980px) {{
         .hero,
         .task-grid,
+        .playground,
         .endpoint-grid {{
           grid-template-columns: 1fr;
         }}
@@ -514,7 +747,10 @@ def render_homepage() -> str:
 
         .topbar,
         .section-head,
-        .task-header {{
+        .task-header,
+        .console-top,
+        .composer-row,
+        .console-controls {{
           align-items: start;
           flex-direction: column;
         }}
@@ -523,6 +759,10 @@ def render_homepage() -> str:
         .hero-panel,
         .section {{
           padding: 20px;
+        }}
+
+        .console-stats {{
+          grid-template-columns: 1fr;
         }}
       }}
     </style>
@@ -583,6 +823,92 @@ curl -X POST "/step" \
         </aside>
       </section>
 
+      <section class="section" id="playground">
+        <div class="section-head">
+          <div>
+            <h2>Live Agent Arena</h2>
+            <p>Launch a scenario, answer as the support agent, and watch the environment update reward and turn state in real time.</p>
+          </div>
+        </div>
+        <div class="playground">
+          <div class="playground-panel">
+            <div class="console-top">
+              <div>
+                <h3>In-Browser Ticket Console</h3>
+                <p>Reset any scenario and interact with the environment without leaving the Space.</p>
+              </div>
+              <div class="status-pill" id="status-pill">Idle · waiting for reset</div>
+            </div>
+
+            <div class="console-stats">
+              <div class="console-stat">
+                <span>Task</span>
+                <strong id="meta-task">easy</strong>
+              </div>
+              <div class="console-stat">
+                <span>Reward</span>
+                <strong id="meta-reward">0.00</strong>
+              </div>
+              <div class="console-stat">
+                <span>Turn</span>
+                <strong id="meta-turn">0 / 5</strong>
+              </div>
+            </div>
+
+            <div class="console-controls">
+              <select id="scenario-select" class="scenario-select">
+                {"".join(scenario_options)}
+              </select>
+              <button class="console-button secondary" id="reset-button" type="button">Reset Scenario</button>
+            </div>
+
+            <div class="transcript" id="transcript">
+              <div class="bubble customer">
+                <small>Customer</small>
+                Pick a scenario and reset the environment to begin.
+              </div>
+            </div>
+
+            <div class="composer">
+              <textarea id="reply-input" placeholder="Write the agent reply here. Show empathy, identify the issue clearly, and offer a concrete next step."></textarea>
+              <div class="composer-row">
+                <label class="toggle">
+                  <input id="resolve-toggle" type="checkbox" />
+                  Mark the ticket resolved with this reply
+                </label>
+                <div class="composer-actions">
+                  <button class="console-button primary" id="step-button" type="button">Send Reply</button>
+                </div>
+              </div>
+              <div class="helper-line" id="helper-line">Tip: stronger answers mention the exact issue and propose a specific recovery path.</div>
+            </div>
+          </div>
+
+          <aside class="score-panel">
+            <h3>How The Score Works</h3>
+            <p>The reward function favors support replies that are empathetic, issue-aware, and resolution-oriented instead of generic filler.</p>
+            <div class="rubric-list">
+              <div class="rubric-item">
+                <strong>Empathy · 0.20</strong>
+                Reply should acknowledge frustration or apologize naturally.
+              </div>
+              <div class="rubric-item">
+                <strong>Intent Coverage · 0.40</strong>
+                Reply should address the real customer issue or issues.
+              </div>
+              <div class="rubric-item">
+                <strong>Resolution Strategy · 0.30</strong>
+                Reply should offer the right next action: track, replace, refund, or escalate.
+              </div>
+              <div class="rubric-item">
+                <strong>Clarity Bonus · 0.10</strong>
+                Longer, concrete replies beat vague one-liners.
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
       <section class="section">
         <div class="section-head">
           <div>
@@ -609,6 +935,118 @@ curl -X POST "/step" \
 
       <p class="footer-note">Built for fast experimentation, reviewer-friendly docs, and cleaner first impressions on Hugging Face Spaces.</p>
     </main>
+    <script>
+      const transcript = document.getElementById("transcript");
+      const scenarioSelect = document.getElementById("scenario-select");
+      const replyInput = document.getElementById("reply-input");
+      const resolveToggle = document.getElementById("resolve-toggle");
+      const resetButton = document.getElementById("reset-button");
+      const stepButton = document.getElementById("step-button");
+      const metaTask = document.getElementById("meta-task");
+      const metaReward = document.getElementById("meta-reward");
+      const metaTurn = document.getElementById("meta-turn");
+      const statusPill = document.getElementById("status-pill");
+      const helperLine = document.getElementById("helper-line");
+
+      let currentState = null;
+      let conversation = [];
+
+      function setStatus(text) {{
+        statusPill.textContent = text;
+      }}
+
+      function renderTranscript() {{
+        transcript.innerHTML = conversation.map((entry) => `
+          <div class="bubble ${{entry.role}}">
+            <small>${{entry.role === "agent" ? "Agent" : "Customer"}}</small>
+            <div>${{entry.content}}</div>
+          </div>
+        `).join("");
+        transcript.scrollTop = transcript.scrollHeight;
+      }}
+
+      function updateMetrics(state, reward) {{
+        const info = state.info || {{}};
+        metaTask.textContent = info.task_name || scenarioSelect.value;
+        metaReward.textContent = Number(reward ?? state.reward ?? 0).toFixed(2);
+        metaTurn.textContent = `${{info.turn ?? 0}} / ${{info.max_turns ?? 5}}`;
+        setStatus(state.done ? "Resolved or exhausted" : "Live episode");
+      }}
+
+      async function resetScenario(taskName) {{
+        setStatus("Resetting scenario...");
+        const response = await fetch(`/reset?task_name=${{encodeURIComponent(taskName)}}`, {{
+          method: "POST"
+        }});
+        const data = await response.json();
+        currentState = data;
+        conversation = [{{
+          role: "customer",
+          content: data.observation.customer_message,
+        }}];
+        renderTranscript();
+        updateMetrics(data, 0);
+        helperLine.textContent = "Scenario reset. Write the first agent reply.";
+      }}
+
+      async function stepScenario() {{
+        if (!currentState) {{
+          await resetScenario(scenarioSelect.value);
+          return;
+        }}
+
+        const reply = replyInput.value.trim();
+        if (!reply) {{
+          helperLine.textContent = "Write an agent reply before sending.";
+          return;
+        }}
+
+        setStatus("Scoring reply...");
+        conversation.push({{ role: "agent", content: reply }});
+        renderTranscript();
+
+        const response = await fetch("/step", {{
+          method: "POST",
+          headers: {{
+            "Content-Type": "application/json"
+          }},
+          body: JSON.stringify({{
+            reply,
+            mark_resolved: resolveToggle.checked
+          }})
+        }});
+        const data = await response.json();
+        currentState = data;
+        if (!data.done) {{
+          conversation.push({{
+            role: "customer",
+            content: data.observation.customer_message
+          }});
+        }}
+        renderTranscript();
+        updateMetrics(data, data.reward);
+        helperLine.textContent = data.done
+          ? "Episode complete. Reset to try a stronger strategy or a harder ticket."
+          : "Reply scored. Continue the conversation or resolve the ticket.";
+        replyInput.value = "";
+        resolveToggle.checked = false;
+      }}
+
+      document.querySelectorAll(".launch-button").forEach((button) => {{
+        button.addEventListener("click", () => {{
+          scenarioSelect.value = button.dataset.task;
+          resetScenario(button.dataset.task);
+          document.getElementById("playground").scrollIntoView({{ behavior: "smooth", block: "start" }});
+        }});
+      }});
+
+      resetButton.addEventListener("click", () => resetScenario(scenarioSelect.value));
+      stepButton.addEventListener("click", stepScenario);
+      scenarioSelect.addEventListener("change", () => {{
+        setStatus("Scenario armed. Click reset to start.");
+        metaTask.textContent = scenarioSelect.value;
+      }});
+    </script>
   </body>
 </html>"""
 
