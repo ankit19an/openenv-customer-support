@@ -6,11 +6,19 @@ colorTo: green
 sdk: docker
 app_port: 7860
 pinned: false
+tags:
+  - openenv
+  - customer-support
+  - fastapi
 ---
 
 # OpenEnv Customer Support
 
 A customer-support simulation environment for training and evaluating agent behavior under escalating ticket pressure.
+
+## Motivation
+
+Customer support is a real operational workflow that frontier agents still struggle with: they need to calm the user, identify the root issue, choose the right recovery path, and avoid repetitive or unhelpful responses. This environment is built to make those behaviors measurable in a compact, reproducible benchmark.
 
 ## Features
 
@@ -19,6 +27,43 @@ A customer-support simulation environment for training and evaluating agent beha
 - Three escalating ticket difficulties: `easy`, `medium`, `hard`.
 - Reward function that scores empathy, intent coverage, and resolution quality.
 - OpenEnv-compatible repo layout with `uv.lock`, `pyproject.toml`, and `openenv.yaml`.
+
+## Observation Space
+
+`Observation` contains:
+
+- `ticket_id`: the active customer-support case id
+- `customer_message`: the latest customer utterance
+- `status`: `open` or `resolved`
+- `history`: the running list of prior agent replies
+
+## Action Space
+
+`Action` contains:
+
+- `reply`: the support agent response for the current turn
+- `mark_resolved`: whether the agent considers the ticket resolved
+
+## Reward Design
+
+Each `step()` returns a normalized reward in `[0.0, 1.0]`. The grader provides dense feedback instead of only end-of-episode success.
+
+- `0.20` empathy signal
+- `0.40` intent coverage
+- `0.30` resolution quality
+- `0.10` clarity bonus
+- negative penalties for vague filler and repeated replies
+
+The reward breakdown is included in `info.reward_breakdown`.
+
+## Tasks
+
+- `easy` — **Delayed Order**
+  One-issue support case. The agent should acknowledge the delay and move toward shipment tracking or status checking.
+- `medium` — **Wrong Item And Delay**
+  Multi-issue support case. The agent needs to cover both the wrong product and the delivery delay, then propose replacement or refund.
+- `hard` — **Refund And Escalation**
+  High-friction support case. The agent should de-escalate, recognize urgency, and choose refund/escalation language appropriately.
 
 ## Run locally
 
@@ -56,6 +101,30 @@ curl 'http://127.0.0.1:8000/tasks'
 3. Respond as the support agent and watch reward + turn state update in real time.
 4. Use `/docs` if you want direct API inspection afterward.
 
+## Baseline Inference
+
+The root-level `inference.py` runs all three tasks in sequence, uses the OpenAI client for model-backed replies when credentials are available, and emits structured stdout logs in `[START]`, `[STEP]`, and `[END]` format for each episode.
+
+Required environment variables:
+
+- `API_BASE_URL`
+- `MODEL_NAME`
+- `HF_TOKEN` or `OPENAI_API_KEY`
+- `LOCAL_IMAGE_NAME` (optional)
+
+Run it with:
+
+```bash
+uv run python inference.py
+```
+
+### Current Baseline Scores
+
+- `easy`: `0.85`
+- `medium`: `1.00`
+- `hard`: `1.00`
+- `average`: `0.95`
+
 ## Deploy on Hugging Face Spaces
 
 Use a **Docker Space** for this repository.
@@ -81,4 +150,5 @@ If build fails, check the Space build logs first; dependency issues are usually 
 python -m py_compile server/app.py my_env/*.py tests/test_env.py tests/test_server.py
 python -m unittest discover -s tests
 uv run openenv validate
+uv run python inference.py
 ```

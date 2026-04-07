@@ -2,7 +2,7 @@ import asyncio
 import unittest
 
 from my_env.env import CustomerSupportEnv
-from my_env.graders import calculate_reward
+from my_env.graders import calculate_reward, score_reply
 from my_env.models import Action
 
 
@@ -33,6 +33,20 @@ class TestCustomerSupportEnv(unittest.TestCase):
             env.step(Action(reply="Sorry, I will check status now.", mark_resolved=True))
         )
         self.assertTrue(response["done"])
+
+    def test_reward_breakdown_includes_penalty_for_repetition(self):
+        baseline = score_reply(
+            "Sorry about the delay. I will check the shipment status right now.",
+            {"intent": "delay", "resolution": "check_status"},
+            [],
+        )
+        repeated = score_reply(
+            "Sorry about the delay. I will check the shipment status right now.",
+            {"intent": "delay", "resolution": "check_status"},
+            ["Sorry about the delay. I will check the shipment status right now."],
+        )
+        self.assertLess(repeated.value, baseline.value)
+        self.assertLess(repeated.penalties, 0.0)
 
 
 if __name__ == "__main__":

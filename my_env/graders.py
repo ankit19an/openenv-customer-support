@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
+from my_env.models import Reward
+
 
 INTENT_KEYWORDS = {
     "delay": {"delay", "late", "shipping", "status", "track"},
@@ -23,15 +25,20 @@ def _as_list(value: str | Iterable[str]) -> list[str]:
     return list(value)
 
 
-def calculate_reward(reply: str, ground_truth: dict) -> float:
-    """Score reply quality from 0.0 to 1.0 against task ground truth."""
+def score_reply(reply: str, ground_truth: dict, previous_history: Iterable[str] | None = None) -> Reward:
+    """Return a normalized reward breakdown for a customer-support reply."""
 
-    score = 0.0
     text = reply.lower()
+    history = [item.lower() for item in (previous_history or [])]
+    empathy = 0.0
+    intent_coverage = 0.0
+    resolution_quality = 0.0
+    clarity = 0.0
+    penalties = 0.0
 
     # Baseline empathy signal
     if any(word in text for word in ("sorry", "apolog", "understand")):
-        score += 0.2
+        empathy = 0.2
 
     # Intent coverage based on task metadata
     intents = _as_list(ground_truth.get("intent", []))
@@ -41,16 +48,36 @@ def calculate_reward(reply: str, ground_truth: dict) -> float:
             for intent in intents
             if any(keyword in text for keyword in INTENT_KEYWORDS.get(intent, {intent}))
         )
-        score += 0.4 * (matched_intents / len(intents))
+        intent_coverage = 0.4 * (matched_intents / len(intents))
 
     # Resolution strategy coverage
     resolution = ground_truth.get("resolution")
     if resolution:
         if any(keyword in text for keyword in RESOLUTION_KEYWORDS.get(resolution, {resolution})):
-            score += 0.3
+            resolution_quality = 0.3
 
     # Longer, concrete replies are usually better than one-liners
     if len(reply.split()) >= 10:
-        score += 0.1
+        clarity = 0.1
 
-    return min(score, 1.0)
+    # Penalize vague filler that gives no operational value
+    if any(phrase in text for phrase in ("thanks, noted", "noted", "okay", "k")):
+        penalties -= 0.15
+
+    # Penalize exact repetition to discourage loop-like behavior
+    if history and text == history[-1]:
+        penalties -= 0.2
+
+    value = min(max(empathy + intent_coverage + resolution_quality + clarity + penalties, 0.0), 1.0)
+    return Reward(
+        value=value,
+        empathy=empathy,
+        intent_coverage=intent_coverage,
+        resolution_quality=resolution_quality,
+        clarity=clarity,
+        penalties=penalties,
+    )
+
+
+def calculate_reward(reply: str, ground_truth: dict) -> float:
+    return score_reply(reply, ground_truth).value

@@ -29,3 +29,4 @@ endpoints:
   tasks: GET /tasks
 observation_schema: my_env.models.Observation
 action_schema: my_env.models.Action
+reward_schema: my_env.models.Reward

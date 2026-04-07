@@ -1,6 +1,6 @@
 import random
 
-from my_env.graders import calculate_reward
+from my_env.graders import score_reply
 from my_env.models import Action, Observation
 from my_env.tasks import TASKS
 
@@ -66,9 +66,11 @@ class CustomerSupportEnv:
             return self._get_state()
 
         self.turn += 1
+        previous_history = list(self.history)
         self.history.append(action.reply)
 
-        reward = calculate_reward(action.reply, self.task["ground_truth"])
+        reward_breakdown = score_reply(action.reply, self.task["ground_truth"], previous_history)
+        reward = reward_breakdown.value
 
         if action.mark_resolved or self.turn >= self.max_turns:
             self.done = True
@@ -86,6 +88,7 @@ class CustomerSupportEnv:
                 "task_name": self.task_name,
                 "turn": self.turn,
                 "max_turns": self.max_turns,
+                "reward_breakdown": reward_breakdown.model_dump(),
             },
         }
 
