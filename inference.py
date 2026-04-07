@@ -20,20 +20,34 @@ client: Optional[OpenAI] = (
 )
 
 
-def run_inference(prompt: str) -> str:
-    print("START")
-    try:
-        if client is None:
-            raise RuntimeError("HF_TOKEN must be set before running inference.")
+def emit_event(event: str, **fields: object) -> None:
+    details = " ".join(f"{key}={value}" for key, value in fields.items())
+    line = f"[{event}]"
+    if details:
+        line = f"{line} {details}"
+    print(line, flush=True)
 
-        print("STEP")
+
+def run_inference(prompt: str) -> str:
+    task_name = os.getenv("TASK_NAME", "customer-support")
+    steps = 1
+    score = 0.0
+    reward = 0.0
+
+    emit_event("START", task=task_name, model=MODEL_NAME)
+    emit_event("STEP", step=steps, reward=reward)
+
+    response_text = ""
+    if client is not None:
         response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[{"role": "user", "content": prompt}],
         )
-        return response.choices[0].message.content or ""
-    finally:
-        print("END")
+        response_text = response.choices[0].message.content or ""
+        score = 1.0 if response_text else 0.0
+
+    emit_event("END", task=task_name, score=score, steps=steps)
+    return response_text
 
 
 def main() -> None:
