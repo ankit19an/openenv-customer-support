@@ -4,6 +4,9 @@ from collections.abc import Iterable
 
 from my_env.models import Reward
 
+MIN_REWARD = 1e-6
+MAX_REWARD = 1.0 - 1e-6
+
 
 INTENT_KEYWORDS = {
     "delay": {"delay", "late", "shipping", "status", "track"},
@@ -23,6 +26,10 @@ def _as_list(value: str | Iterable[str]) -> list[str]:
     if isinstance(value, str):
         return [value]
     return list(value)
+
+
+def _normalize_reward(value: float) -> float:
+    return min(max(float(value), MIN_REWARD), MAX_REWARD)
 
 
 def score_reply(reply: str, ground_truth: dict, previous_history: Iterable[str] | None = None) -> Reward:
@@ -68,7 +75,9 @@ def score_reply(reply: str, ground_truth: dict, previous_history: Iterable[str] 
     if history and text == history[-1]:
         penalties -= 0.2
 
-    value = min(max(empathy + intent_coverage + resolution_quality + clarity + penalties, 0.0), 1.0)
+    value = _normalize_reward(
+        empathy + intent_coverage + resolution_quality + clarity + penalties
+    )
     return Reward(
         value=value,
         empathy=empathy,
