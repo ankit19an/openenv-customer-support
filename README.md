@@ -120,10 +120,10 @@ uv run python inference.py
 
 ### Current Baseline Scores
 
-- `easy`: `0.85`
-- `medium`: `1.00`
-- `hard`: `1.00`
-- `average`: `0.95`
+- `easy`: `0.75`
+- `medium`: `0.90`
+- `hard`: `0.90`
+- `average`: `0.85`
 
 ## Deploy on Hugging Face Spaces
 

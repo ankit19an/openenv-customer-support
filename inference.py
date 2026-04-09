@@ -65,6 +65,11 @@ def log_end(success: bool, steps: int, score: float, rewards: list[float]) -> No
     )
 
 
+def bounded_score(rewards: list[float]) -> float:
+    raw_score = sum(rewards) / len(rewards) if rewards else 0.0
+    return min(max(raw_score, 0.01), 0.99)
+
+
 def heuristic_reply(task_name: str, turn: int) -> tuple[str, bool]:
     scripted = {
         "easy": (
@@ -171,12 +176,12 @@ async def run_task(client: Optional[OpenAI], task_name: str) -> float:
             if done:
                 break
 
-        score = max(rewards) if rewards else 0.0
+        score = bounded_score(rewards)
         success = score >= 0.6
         return score
     finally:
         await env.close()
-        log_end(success=success, steps=steps_taken, score=max(rewards) if rewards else 0.0, rewards=rewards)
+        log_end(success=success, steps=steps_taken, score=bounded_score(rewards), rewards=rewards)
 
 
 async def main() -> None:
