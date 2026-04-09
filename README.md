@@ -1,6 +1,6 @@
 ---
 title: OpenEnv Customer Support
-emoji: ":rocket:"
+emoji: "🚀"
 colorFrom: blue
 colorTo: green
 sdk: docker
