@@ -1,8 +1,8 @@
 name: customer-support-rl-env
 version: "0.1.0"
 description: >
-  A lightweight customer-support training environment with escalating ticket
-  scenarios for RL and agent evaluation workflows.
+  A policy-aware customer-support environment with escalating logistics,
+  returns, and executive-escalation scenarios for RL and agent evaluation.
 author: ankit19an
 tags:
   - customer-support
@@ -11,15 +11,15 @@ tags:
   - fastapi
 tasks:
   - id: easy
-    name: Delayed Order
+    name: Delayed Anniversary Gift
     difficulty: easy
     domain: customer_support
   - id: medium
-    name: Wrong Item And Delay
+    name: Wrong Item And Delivery Delay
     difficulty: medium
     domain: customer_support
   - id: hard
-    name: Refund And Escalation
+    name: Refund, Compensation, And Executive Escalation
     difficulty: hard
     domain: customer_support
 endpoints:

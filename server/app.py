@@ -33,9 +33,9 @@ def render_homepage() -> str:
         ("GET", "/docs", "Open the interactive Swagger interface."),
     ]
     task_themes = {
-        "easy": ("Calm Delay", "linear-gradient(135deg, #34d399, #0f766e)"),
-        "medium": ("Mixed Failure", "linear-gradient(135deg, #f59e0b, #c2410c)"),
-        "hard": ("Escalation Risk", "linear-gradient(135deg, #fb7185, #be123c)"),
+        "easy": ("Logistics Recovery", "linear-gradient(135deg, #34d399, #0f766e)"),
+        "medium": ("Returns Operations", "linear-gradient(135deg, #f59e0b, #c2410c)"),
+        "hard": ("Executive Escalation", "linear-gradient(135deg, #fb7185, #be123c)"),
     }
 
     task_cards = []
@@ -48,6 +48,10 @@ def render_homepage() -> str:
             task_name,
             ("Scenario", "linear-gradient(135deg, #60a5fa, #1d4ed8)"),
         )
+        criteria_markup = "".join(
+            f"<li>{escape(item)}</li>" for item in task.get("success_criteria", [])
+        )
+        profile = task.get("customer_profile", {})
         task_cards.append(
             f"""
             <article class="task-card">
@@ -56,19 +60,24 @@ def render_homepage() -> str:
                 <span class="task-level">{escape(task_name.title())}</span>
                 <span class="task-label">{escape(label)}</span>
               </div>
-              <p class="ticket-id">Ticket {escape(task["ticket_id"])}</p>
+              <p class="ticket-id">Ticket {escape(task["ticket_id"])} | {escape(task["title"])}</p>
               <p class="task-message">{escape(task["message"])}</p>
+              <p class="task-summary">{escape(task["summary"])}</p>
               <div class="task-meta">
+                <span>Customer: {escape(profile.get("tier", "Standard"))} | {escape(profile.get("sentiment", "neutral"))}</span>
+                <span>Order value: {escape(profile.get("order_value", "n/a"))}</span>
                 <span>Intent: {escape(", ".join(intents))}</span>
                 <span>Resolution: {escape(task["ground_truth"]["resolution"].replace("_", " "))}</span>
               </div>
+              <ul class="task-criteria">{criteria_markup}</ul>
+              <p class="task-policy">{escape(task["policy_hint"])}</p>
               <code class="task-action">POST /reset?task_name={escape(task_name)}</code>
               <button class="launch-button" data-task="{escape(task_name)}">Try {escape(task_name.title())} Scenario</button>
             </article>
             """
         )
         scenario_options.append(
-            f'<option value="{escape(task_name)}">{escape(task_name.title())} · {escape(label)}</option>'
+            f'<option value="{escape(task_name)}">{escape(task_name.title())} - {escape(label)}</option>'
         )
 
     endpoint_cards = []
@@ -411,8 +420,10 @@ def render_homepage() -> str:
 
       .ticket-id,
       .task-message,
+      .task-summary,
       .task-meta,
       .task-action,
+      .task-policy,
       .endpoint-copy {{
         color: var(--muted);
       }}
@@ -429,10 +440,28 @@ def render_homepage() -> str:
         line-height: 1.7;
       }}
 
+      .task-summary {{
+        margin: 0 0 14px;
+        font-size: 0.95rem;
+        line-height: 1.6;
+      }}
+
       .task-meta {{
         display: grid;
         gap: 6px;
         font-size: 0.92rem;
+      }}
+
+      .task-criteria {{
+        margin: 16px 0 0;
+        padding-left: 18px;
+        color: var(--ink);
+        display: grid;
+        gap: 8px;
+      }}
+
+      .task-criteria li {{
+        line-height: 1.55;
       }}
 
       .task-action {{
@@ -442,6 +471,15 @@ def render_homepage() -> str:
         border-radius: 14px;
         background: rgba(31, 36, 48, 0.05);
         font-family: "IBM Plex Mono", monospace;
+      }}
+
+      .task-policy {{
+        margin: 16px 0 0;
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: rgba(15, 118, 110, 0.08);
+        border: 1px solid rgba(15, 118, 110, 0.14);
+        line-height: 1.6;
       }}
 
       .launch-button {{
@@ -509,7 +547,7 @@ def render_homepage() -> str:
 
       .console-stats {{
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 12px;
         padding: 18px 20px;
       }}
@@ -659,6 +697,10 @@ def render_homepage() -> str:
         margin-top: 18px;
       }}
 
+      .context-list {{
+        margin-top: 22px;
+      }}
+
       .rubric-item {{
         padding: 14px 16px;
         border-radius: 16px;
@@ -786,8 +828,8 @@ def render_homepage() -> str:
           <span class="eyebrow">Live Environment</span>
           <h1>Customer Support RL Env</h1>
           <p class="lead">
-            Practice support-agent behavior against escalating customer tickets with a lightweight environment API.
-            Use the interactive docs for direct testing, or start with a scenario below and walk through a support turn from reset to resolution.
+            Evaluate support agents against policy-aware logistics, returns, and escalation cases that
+            reward diagnosis, ownership, and operationally safe recovery instead of shallow keyword matches.
           </p>
           <div class="hero-stats">
             <div class="stat">
@@ -795,12 +837,12 @@ def render_homepage() -> str:
               <span>built-in scenarios</span>
             </div>
             <div class="stat">
-              <strong>5</strong>
-              <span>max turns per episode</span>
+              <strong>{max(task["max_turns"] for task in TASKS.values())}</strong>
+              <span>max turns across episodes</span>
             </div>
             <div class="stat">
-              <strong>FastAPI</strong>
-              <span>live Swagger + JSON schema</span>
+              <strong>7-part</strong>
+              <span>dense reward rubric</span>
             </div>
           </div>
           <div class="hero-actions">
@@ -813,7 +855,7 @@ def render_homepage() -> str:
         <aside class="hero-panel">
           <h2 class="panel-title">Quick Start</h2>
           <p class="panel-copy">
-            Reset a scenario, submit a reply, and inspect state transitions without leaving the browser.
+            Reset a scenario, read the policy context, answer as the agent, and inspect how the grader reacts.
           </p>
           <pre class="code-block">curl -X POST "/reset?task_name=medium"
 
@@ -827,7 +869,7 @@ curl -X POST "/step" \
         <div class="section-head">
           <div>
             <h2>Live Agent Arena</h2>
-            <p>Launch a scenario, answer as the support agent, and watch the environment update reward and turn state in real time.</p>
+            <p>Launch a scenario, answer as the support agent, and watch the environment grade policy fit, ownership, and recovery quality in real time.</p>
           </div>
         </div>
         <div class="playground">
@@ -837,7 +879,7 @@ curl -X POST "/step" \
                 <h3>In-Browser Ticket Console</h3>
                 <p>Reset any scenario and interact with the environment without leaving the Space.</p>
               </div>
-              <div class="status-pill" id="status-pill">Idle · waiting for reset</div>
+              <div class="status-pill" id="status-pill">Idle - waiting for reset</div>
             </div>
 
             <div class="console-stats">
@@ -852,6 +894,10 @@ curl -X POST "/step" \
               <div class="console-stat">
                 <span>Turn</span>
                 <strong id="meta-turn">0 / 5</strong>
+              </div>
+              <div class="console-stat">
+                <span>Band</span>
+                <strong id="meta-band">idle</strong>
               </div>
             </div>
 
@@ -880,29 +926,47 @@ curl -X POST "/step" \
                   <button class="console-button primary" id="step-button" type="button">Send Reply</button>
                 </div>
               </div>
-              <div class="helper-line" id="helper-line">Tip: stronger answers mention the exact issue and propose a specific recovery path.</div>
+              <div class="helper-line" id="helper-line">Tip: stronger answers diagnose the issue, respect the policy hint, and commit to a concrete next step.</div>
             </div>
           </div>
 
           <aside class="score-panel">
             <h3>How The Score Works</h3>
-            <p>The reward function favors support replies that are empathetic, issue-aware, and resolution-oriented instead of generic filler.</p>
+            <p>The reward function favors replies that sound like an experienced operator: calm, specific, policy-safe, and accountable.</p>
             <div class="rubric-list">
               <div class="rubric-item">
-                <strong>Empathy · 0.20</strong>
+                <strong>Empathy - 0.15</strong>
                 Reply should acknowledge frustration or apologize naturally.
               </div>
               <div class="rubric-item">
-                <strong>Intent Coverage · 0.40</strong>
-                Reply should address the real customer issue or issues.
+                <strong>Issue Diagnosis - 0.25</strong>
+                Reply should explicitly cover the actual failure modes in the ticket.
               </div>
               <div class="rubric-item">
-                <strong>Resolution Strategy · 0.30</strong>
-                Reply should offer the right next action: track, replace, refund, or escalate.
+                <strong>Recovery Plan - 0.20</strong>
+                Reply should propose the right next action: track, replace, refund, escalate, or return handling.
               </div>
               <div class="rubric-item">
-                <strong>Clarity Bonus · 0.10</strong>
-                Longer, concrete replies beat vague one-liners.
+                <strong>Policy Fit - 0.15</strong>
+                Replies should respect operational constraints instead of making risky promises.
+              </div>
+              <div class="rubric-item">
+                <strong>De-escalation And Ownership - 0.20</strong>
+                Strong replies calm the customer and clearly take responsibility for the next step.
+              </div>
+              <div class="rubric-item">
+                <strong>Clarity - 0.05</strong>
+                Concise, concrete replies beat filler and repetition.
+              </div>
+            </div>
+            <div class="rubric-list context-list">
+              <div class="rubric-item">
+                <strong>Live Customer Context</strong>
+                <div id="customer-context">Reset a scenario to load the customer profile.</div>
+              </div>
+              <div class="rubric-item">
+                <strong>Policy Hint</strong>
+                <div id="policy-hint">Policy guidance will appear here after reset.</div>
               </div>
             </div>
           </aside>
@@ -913,7 +977,7 @@ curl -X POST "/step" \
         <div class="section-head">
           <div>
             <h2>Scenario Deck</h2>
-            <p>Each task increases the pressure: simple shipping delay, mixed delivery error, then an angry refund-and-escalation case.</p>
+            <p>Each task climbs from logistics triage to returns operations to a high-value executive escalation with compensation pressure.</p>
           </div>
         </div>
         <div class="task-grid">
@@ -945,8 +1009,11 @@ curl -X POST "/step" \
       const metaTask = document.getElementById("meta-task");
       const metaReward = document.getElementById("meta-reward");
       const metaTurn = document.getElementById("meta-turn");
+      const metaBand = document.getElementById("meta-band");
       const statusPill = document.getElementById("status-pill");
       const helperLine = document.getElementById("helper-line");
+      const customerContext = document.getElementById("customer-context");
+      const policyHint = document.getElementById("policy-hint");
 
       let currentState = null;
       let conversation = [];
@@ -967,9 +1034,15 @@ curl -X POST "/step" \
 
       function updateMetrics(state, reward) {{
         const info = state.info || {{}};
+        const observation = state.observation || {{}};
         metaTask.textContent = info.task_name || scenarioSelect.value;
         metaReward.textContent = Number(reward ?? state.reward ?? 0).toFixed(2);
         metaTurn.textContent = `${{info.turn ?? 0}} / ${{info.max_turns ?? 5}}`;
+        metaBand.textContent = info.quality_band || "open";
+        customerContext.textContent = observation.customer_profile
+          ? `${{observation.customer_profile.tier || "Standard"}} customer, ${{observation.customer_profile.sentiment || "neutral"}} tone, order value ${{observation.customer_profile.order_value || "n/a"}}`
+          : "Reset a scenario to load the customer profile.";
+        policyHint.textContent = observation.policy_hint || "Policy guidance will appear here after reset.";
         setStatus(state.done ? "Resolved or exhausted" : "Live episode");
       }}
 
@@ -986,7 +1059,9 @@ curl -X POST "/step" \
         }}];
         renderTranscript();
         updateMetrics(data, 0);
-        helperLine.textContent = "Scenario reset. Write the first agent reply.";
+        helperLine.textContent = data.observation.success_criteria
+          ? `Success criteria: ${{data.observation.success_criteria.join(" | ")}}`
+          : "Scenario reset. Write the first agent reply.";
       }}
 
       async function stepScenario() {{
@@ -1027,7 +1102,7 @@ curl -X POST "/step" \
         updateMetrics(data, data.reward);
         helperLine.textContent = data.done
           ? "Episode complete. Reset to try a stronger strategy or a harder ticket."
-          : "Reply scored. Continue the conversation or resolve the ticket.";
+          : `Reply scored. Current band: ${{data.info?.quality_band || "open"}}. Continue or resolve when the recovery plan is complete.`;
         replyInput.value = "";
         resolveToggle.checked = false;
       }}

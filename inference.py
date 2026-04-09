@@ -27,7 +27,9 @@ SYSTEM_PROMPT = textwrap.dedent(
     Write one concise support reply that:
     1. shows empathy,
     2. explicitly addresses the customer's issue,
-    3. proposes the right next action.
+    3. proposes the right next action,
+    4. respects the policy hint,
+    5. sounds like the agent owns the case.
     Return only the reply text.
     """
 ).strip()
@@ -72,30 +74,57 @@ def bounded_score(rewards: list[float]) -> float:
 
 def heuristic_reply(task_name: str, turn: int) -> tuple[str, bool]:
     scripted = {
-        "easy": (
-            "Sorry about the delay. I am checking the shipment status with the carrier now and will share an update right away.",
-            turn >= 2,
-        ),
-        "medium": (
-            "Sorry this order arrived late and with the wrong item. I can arrange a replacement immediately or process a refund if you prefer.",
-            turn >= 2,
-        ),
-        "hard": (
-            "I understand how frustrating this is. I can start the refund now, escalate the case to a specialist, and review compensation options today.",
-            turn >= 2,
-        ),
+        "easy": [
+            (
+                "Sorry about the delay. I am checking the carrier status now and will send you the next tracking update window today.",
+                False,
+            ),
+            (
+                "Sorry again about the delayed shipment. I have checked the carrier status and will keep this on priority until I confirm the tracking update today.",
+                True,
+            ),
+        ],
+        "medium": [
+            (
+                "Sorry this order arrived late and with the wrong item. I am reviewing the case now and can arrange a replacement or refund.",
+                False,
+            ),
+            (
+                "I understand this was frustrating. I have reviewed the late delivery and wrong item, and I can send the return label today while I process either the replacement or the refund for you.",
+                True,
+            ),
+        ],
+        "hard": [
+            (
+                "I understand how frustrating this is, especially after three contacts. I can start the refund and escalate this to a specialist immediately.",
+                False,
+            ),
+            (
+                "I understand how frustrating this is. I am personally prioritizing this case today, and I will confirm the refund, specialist escalation, and compensation review update for you.",
+                True,
+            ),
+        ],
     }
-    return scripted[task_name]
+    options = scripted[task_name]
+    return options[min(turn - 1, len(options) - 1)]
 
 
 def build_user_prompt(task_name: str, customer_message: str, history: list[str], turn: int) -> str:
     history_block = "\n".join(history[-4:]) if history else "None"
     task = TASKS[task_name]
+    success_criteria = "\n".join(f"- {item}" for item in task.get("success_criteria", []))
+    customer_profile = ", ".join(
+        f"{key}: {value}" for key, value in task.get("customer_profile", {}).items()
+    )
     return textwrap.dedent(
         f"""
         Active task: {task_name}
         Customer ticket: {task["ticket_id"]}
         Latest customer message: {customer_message}
+        Customer context: {customer_profile}
+        Policy hint: {task["policy_hint"]}
+        Success criteria:
+        {success_criteria}
         Agent history:
         {history_block}
         Turn: {turn}

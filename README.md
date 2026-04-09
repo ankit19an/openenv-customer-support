@@ -1,6 +1,6 @@
 ---
 title: OpenEnv Customer Support
-emoji: "🚀"
+emoji: ":rocket:"
 colorFrom: blue
 colorTo: green
 sdk: docker
@@ -14,56 +14,73 @@ tags:
 
 # OpenEnv Customer Support
 
-A customer-support simulation environment for training and evaluating agent behavior under escalating ticket pressure.
+A customer-support simulation environment for training and evaluating agents on realistic service operations: shipment delays, returns recovery, and high-stakes escalation handling.
 
 ## Motivation
 
-Customer support is a real operational workflow that frontier agents still struggle with: they need to calm the user, identify the root issue, choose the right recovery path, and avoid repetitive or unhelpful responses. This environment is built to make those behaviors measurable in a compact, reproducible benchmark.
+Many agent benchmarks reward surface-level politeness. Real support work is harder: the agent has to identify the real failure mode, stay inside policy, calm the user down, and choose an operationally valid next step. This environment is designed to measure those behaviors with dense reward and deterministic graders.
 
-## Features
+## What makes this benchmark stronger
 
-- FastAPI environment API with `/reset`, `/step`, `/state`, `/tasks`, and `/health` endpoints.
-- Live in-browser playground on the homepage so reviewers can test scenarios without touching curl.
-- Three escalating ticket difficulties: `easy`, `medium`, `hard`.
-- Reward function that scores empathy, intent coverage, and resolution quality.
-- OpenEnv-compatible repo layout with `uv.lock`, `pyproject.toml`, and `openenv.yaml`.
+- Real-world support domain instead of a toy task.
+- Three escalating scenarios with distinct operational pressures.
+- Policy-aware reward shaping that scores more than generic keyword overlap.
+- Deterministic follow-up messages so trajectories are reproducible.
+- Live Hugging Face Space homepage for reviewers plus standard OpenEnv endpoints for agents.
 
 ## Observation Space
 
-`Observation` contains:
+`Observation` includes:
 
-- `ticket_id`: the active customer-support case id
-- `customer_message`: the latest customer utterance
-- `status`: `open` or `resolved`
-- `history`: the running list of prior agent replies
+- `ticket_id`: active support case id
+- `task_name`: task id for the current scenario
+- `difficulty`: easy, medium, or hard
+- `customer_message`: latest customer-facing message
+- `status`: current ticket status
+- `customer_profile`: structured context such as tier, sentiment, and order value
+- `policy_hint`: operational constraint the agent should respect
+- `success_criteria`: checklist of what a strong reply should accomplish
+- `history`: prior agent replies in the current episode
 
 ## Action Space
 
-`Action` contains:
+`Action` includes:
 
-- `reply`: the support agent response for the current turn
-- `mark_resolved`: whether the agent considers the ticket resolved
+- `reply`: the support-agent response
+- `mark_resolved`: whether the agent claims the ticket is resolved
 
 ## Reward Design
 
-Each `step()` returns a normalized reward in `[0.0, 1.0]`. The grader provides dense feedback instead of only end-of-episode success.
+Each `step()` returns a normalized reward in the open interval `(0, 1)`. The reward is dense, trajectory-aware, and intentionally shaped to reflect real service quality.
 
-- `0.20` empathy signal
-- `0.40` intent coverage
-- `0.30` resolution quality
-- `0.10` clarity bonus
-- negative penalties for vague filler and repeated replies
+Reward breakdown:
 
-The reward breakdown is included in `info.reward_breakdown`.
+- `0.15` empathy
+- `0.25` issue diagnosis / intent coverage
+- `0.20` recovery plan quality
+- `0.15` policy compliance
+- `0.10` de-escalation
+- `0.10` ownership language
+- `0.05` clarity
+- negative penalties for vague filler, repetition, blame, or risky promises
+
+The full reward breakdown is returned in `info.reward_breakdown`.
 
 ## Tasks
 
-- `easy` — **Delayed Order**
-  One-issue support case. The agent should acknowledge the delay and move toward shipment tracking or status checking.
-- `medium` — **Wrong Item And Delay**
-  Multi-issue support case. The agent needs to cover both the wrong product and the delivery delay, then propose replacement or refund.
-- `hard` — **Refund And Escalation**
-  High-friction support case. The agent should de-escalate, recognize urgency, and choose refund/escalation language appropriately.
+- `easy` - **Delayed Anniversary Gift**
+  Gold-tier customer with a delayed order. The agent should acknowledge the delay, check carrier status, and set a clear update window without overpromising.
+- `medium` - **Wrong Item And Delivery Delay**
+  Multi-issue logistics case. The agent must address both the late delivery and the wrong item, then explain replacement or refund plus the return path.
+- `hard` - **Refund, Compensation, And Executive Escalation**
+  High-value angry customer after repeated contacts. The agent needs to de-escalate, take ownership, begin refund handling, escalate appropriately, and discuss compensation safely.
+
+## Environment behavior
+
+- `reset()` starts a clean scenario state and returns the initial observation.
+- `step(action)` grades the reply, updates the conversation, and returns `observation`, `reward`, `done`, and `info`.
+- Customer follow-ups depend on reply quality, so stronger replies calm the case while weak replies increase pressure.
+- Prematurely marking a ticket as resolved is penalized and keeps the episode open.
 
 ## Run locally
 
@@ -77,33 +94,30 @@ uvicorn server.app:app --reload
 Reset with a specific task:
 
 ```bash
-curl -X POST 'http://127.0.0.1:8000/reset?task_name=medium'
+curl -X POST "http://127.0.0.1:8000/reset?task_name=medium"
 ```
 
 Submit an agent reply:
 
 ```bash
-curl -X POST 'http://127.0.0.1:8000/step' \
-  -H 'content-type: application/json' \
-  -d '{"reply": "Sorry about the delay. I will check shipment status and arrange a replacement or refund immediately.", "mark_resolved": false}'
+curl -X POST "http://127.0.0.1:8000/step" \
+  -H "content-type: application/json" \
+  -d '{"reply": "Sorry this order arrived late and with the wrong item. I can arrange a replacement or refund and send the return label today.", "mark_resolved": false}'
 ```
 
 List available tasks:
 
 ```bash
-curl 'http://127.0.0.1:8000/tasks'
+curl "http://127.0.0.1:8000/tasks"
 ```
 
-## Demo flow
+## Baseline inference
 
-1. Open the Space root page.
-2. Launch a scenario from the **Live Agent Arena**.
-3. Respond as the support agent and watch reward + turn state update in real time.
-4. Use `/docs` if you want direct API inspection afterward.
+The root-level `inference.py` runs all three tasks in sequence, uses the OpenAI client when credentials are available, and emits the required structured stdout logs:
 
-## Baseline Inference
-
-The root-level `inference.py` runs all three tasks in sequence, uses the OpenAI client for model-backed replies when credentials are available, and emits structured stdout logs in `[START]`, `[STEP]`, and `[END]` format for each episode.
+- `[START] task=... env=... model=...`
+- `[STEP] step=... action=... reward=... done=... error=...`
+- `[END] success=... steps=... score=... rewards=...`
 
 Required environment variables:
 
@@ -120,31 +134,23 @@ uv run python inference.py
 
 ### Current Baseline Scores
 
-- `easy`: `0.75`
-- `medium`: `0.90`
-- `hard`: `0.90`
+- `easy`: `0.77`
+- `medium`: `0.93`
+- `hard`: `0.85`
 - `average`: `0.85`
 
 ## Deploy on Hugging Face Spaces
 
-Use a **Docker Space** for this repository.
+Use a Docker Space for this repository.
 
-1. Create a new Space and choose **Docker** as the SDK.
-2. Push this repository as-is (the included `Dockerfile` listens on port `7860`, which Spaces expects).
-3. Ensure these files are present and non-empty:
-   - `Dockerfile`
-   - `requirements.txt`
-   - `server/app.py`
-   - `pyproject.toml`
-   - `uv.lock`
-4. After build completes, open:
+1. Create a new Space and choose Docker as the SDK.
+2. Push this repository as-is.
+3. Open:
    - `https://<your-space>.hf.space/` for the interactive homepage
    - `https://<your-space>.hf.space/health` for health check
-   - `https://<your-space>.hf.space/docs` for Swagger UI
+   - `https://<your-space>.hf.space/docs` for the API docs
 
-If build fails, check the Space build logs first; dependency issues are usually caused by missing or empty `requirements.txt`.
-
-## Run checks
+## Validation commands
 
 ```bash
 python -m py_compile server/app.py my_env/*.py tests/test_env.py tests/test_server.py

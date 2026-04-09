@@ -13,6 +13,8 @@ class TestCustomerSupportEnv(unittest.TestCase):
         state = asyncio.run(env.reset(task_name="hard"))
         self.assertEqual(state["info"]["task_name"], "hard")
         self.assertEqual(state["observation"].ticket_id, "T3")
+        self.assertEqual(state["observation"].difficulty, "hard")
+        self.assertIn("Platinum", state["observation"].customer_profile["tier"])
 
     def test_reset_rewards_stay_in_strict_open_interval_for_all_tasks(self):
         for task_name in TASKS:
@@ -28,8 +30,8 @@ class TestCustomerSupportEnv(unittest.TestCase):
             "resolution": "replace_or_refund",
         }
         strong_reply = (
-            "Sorry this was frustrating. I can see the wrong item and delay, "
-            "so I will replace it today or process a refund right away."
+            "Sorry this was frustrating. I can see the wrong item and the delivery delay, "
+            "so I will arrange a replacement or refund and send the return label today."
         )
         weak_reply = "Thanks, noted."
 
@@ -50,18 +52,27 @@ class TestCustomerSupportEnv(unittest.TestCase):
         }
         weak_reply = "Thanks, noted."
         strong_reply = (
-            "Sorry this was frustrating. I can see the wrong item and delay, "
-            "so I will replace it today or process a refund right away."
+            "Sorry this was frustrating. I can see the wrong item and the delivery delay, "
+            "so I will arrange a replacement or refund and send the return label today."
         )
 
         self.assertEqual(calculate_reward(weak_reply, ground_truth), MIN_REWARD)
-        self.assertEqual(calculate_reward(strong_reply, ground_truth), MAX_REWARD)
+        self.assertGreater(calculate_reward(strong_reply, ground_truth), 0.7)
+        self.assertLess(calculate_reward(strong_reply, ground_truth), 1.0)
 
     def test_step_marks_done_on_resolve(self):
         env = CustomerSupportEnv("easy")
         asyncio.run(env.reset())
         response = asyncio.run(
-            env.step(Action(reply="Sorry, I will check status now.", mark_resolved=True))
+            env.step(
+                Action(
+                    reply=(
+                        "Sorry about the delay. I will check the carrier status now and send you "
+                        "an update window today."
+                    ),
+                    mark_resolved=True,
+                )
+            )
         )
         self.assertTrue(response["done"])
         self.assertEqual(response["observation"].status, "resolved")
@@ -75,8 +86,8 @@ class TestCustomerSupportEnv(unittest.TestCase):
             env.step(
                 Action(
                     reply=(
-                        "Sorry this arrived late and with the wrong item. "
-                        "I can replace it immediately or issue a refund today."
+                        "Sorry this arrived late and with the wrong item. I am reviewing the case "
+                        "now, and I can arrange a replacement or refund and email the return label today."
                     ),
                     mark_resolved=True,
                 )
@@ -101,7 +112,10 @@ class TestCustomerSupportEnv(unittest.TestCase):
         step_state = asyncio.run(
             env.step(
                 Action(
-                    reply="Sorry about the delay. I am checking the shipment status now.",
+                    reply=(
+                        "Sorry about the delay. I am checking the shipment status now and will "
+                        "share the next update window shortly."
+                    ),
                     mark_resolved=False,
                 )
             )
@@ -118,17 +132,33 @@ class TestCustomerSupportEnv(unittest.TestCase):
 
     def test_reward_breakdown_includes_penalty_for_repetition(self):
         baseline = score_reply(
-            "Sorry about the delay. I will check the shipment status right now.",
+            "Sorry about the delay. I will check the shipment status right now and send an update.",
             {"intent": "delay", "resolution": "check_status"},
             [],
         )
         repeated = score_reply(
-            "Sorry about the delay. I will check the shipment status right now.",
+            "Sorry about the delay. I will check the shipment status right now and send an update.",
             {"intent": "delay", "resolution": "check_status"},
-            ["Sorry about the delay. I will check the shipment status right now."],
+            ["Sorry about the delay. I will check the shipment status right now and send an update."],
         )
         self.assertLess(repeated.value, baseline.value)
         self.assertLess(repeated.penalties, 0.0)
+
+    def test_premature_resolution_keeps_ticket_open(self):
+        env = CustomerSupportEnv("hard")
+        asyncio.run(env.reset())
+        response = asyncio.run(
+            env.step(
+                Action(
+                    reply="I will look into it.",
+                    mark_resolved=True,
+                )
+            )
+        )
+        self.assertFalse(response["done"])
+        self.assertEqual(response["observation"].status, "open")
+        self.assertTrue(response["info"]["premature_resolution"])
+        self.assertIn("not resolved", response["observation"].customer_message.lower())
 
 
 if __name__ == "__main__":
